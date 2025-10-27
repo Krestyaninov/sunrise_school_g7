@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Quarter Trainer – RU/EN UI + Explanations</title>
+<style>
+  :root{--b:#e5e7eb;--bg:#f7f8fa;--fg:#111}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;margin:0;background:var(--bg);color:var(--fg)}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{padding:8px 12px;border:1px solid var(--b);border-radius:999px;background:#fff;cursor:pointer}
+  .tab.active{background:#111;color:#fff;border-color:#111}
+  .lang{display:flex;gap:6px;align-items:center}
+  select{padding:6px 10px;border:1px solid var(--b);border-radius:8px;background:#fff}
+  .card{background:#fff;border:1px solid var(--b);border-radius:12px;padding:16px;margin:12px 0}
+  .q{border:1px solid var(--b);border-radius:12px;padding:14px;margin:12px 0;background:#fff}
+  .choices{display:grid;gap:8px}
+  .choices label{display:flex;gap:10px;align-items:flex-start;background:#f9fafb;border:1px solid var(--b);border-radius:10px;padding:10px;cursor:pointer}
+  .ok{background:#ecfdf5;border-color:#a7f3d0}
+  .bad{background:#fef2f2;border-color:#fecaca}
+  .explain{margin-top:8px;font-size:13px;color:#374151;display:none}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+  button{border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+  .primary{background:#111;color:#fff}
+  .ghost{background:#fff;border:1px solid var(--b)}
+  .score{background:#fff;border:1px dashed #d1d5db;border-radius:12px;padding:14px}
+  .muted{color:#6b7280;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="tabs" id="tabs"></div>
+    <div class="lang">
+      <label for="langSel" id="langLabel">Language</label>
+      <select id="langSel">
+        <option value="en" selected>English (≤B1)</option>
+        <option value="ru">Русский</option>
+      </select>
+    </div>
+  </header>
+
+  <div id="subjectTitle" class="card" style="font-weight:700"></div>
+  <form id="quiz"></form>
+
+  <div class="btns">
+    <button type="button" class="primary" id="checkBtn">Check answers</button>
+    <button type="button" class="ghost" id="resetBtn">Reset</button>
+    <button type="button" class="ghost" id="shuffleBtn">Shuffle</button>
+  </div>
+
+  <div id="result" class="score"></div>
+  <p class="muted" id="footNote"></p>
+</div>
+
+<script>
+/* ================= Localization (UI only + explanations) ================= */
+const I18N = {
+  en: {
+    subjects:{ Geography:"Geography", Science:"Science", English:"English", Math:"Math", German:"German" },
+    check:"Check answers", reset:"Reset", shuffle:"Shuffle",
+    qnum:n=>`Question ${n}`, title:s=>`Training: ${s}`,
+    result:(c,t,p,score)=>`Result: ${c} of ${t} • ${p}% correct • Score (0–10): ${score}`,
+    hint:"After checking, a short explanation appears under each question.",
+    langLabel:"Language"
+  },
+  ru: {
+    subjects:{ Geography:"География", Science:"Наука", English:"Английский", Math:"Математика", German:"Немецкий" },
+    check:"Проверить ответы", reset:"Сбросить", shuffle:"Перемешать",
+    qnum:n=>`Вопрос ${n}`, title:s=>`Тренируем: ${s}`,
+    result:(c,t,p,score)=>`Итог: ${c} из ${t} • ${p}% правильных • Оценка (0–10): ${score}`,
+    hint:"После проверки под каждым вопросом показывается краткое объяснение на выбранном языке.",
+    langLabel:"Язык / Language"
+  }
+};
+let LANG = "en"; // default to English UI
+
+/* ================= Question bank =================
+   PROMPTS/OPTIONS: always EN (as in originals).
+   EXPLANATIONS: RU/EN switch with UI language.
+*/
+const QBANK = {
+  Geography: [
+  {
+    prompt:"A geographer’s tools include:",
+    options:["Maps and globes","Satellite images","Notebooks and field records","All of the above"],
+    answer:3,
+    explain:{
+      en:"Geographers use many tools: maps, globes, satellites, and field notes.",
+      ru:"Географы используют разные инструменты: карты, глобусы, спутниковые снимки и полевые записи."
+    },
+    points:1
+  },
+  {
+    prompt:"The two main branches of geography are:",
+    options:["Cartography and geology","Physical and human","Regional and local","Hydrology and meteorology"],
+    answer:1,
+    explain:{
+      en:"Physical studies natural systems; human studies people and societies.",
+      ru:"Физическая изучает природные системы; человеческая — людей и общества."
+    },
+    points:1
+  },
+  {
+    prompt:"A street address describes your:",
+    options:["Relative location","Absolute location","Region","Place"],
+    answer:1,
+    explain:{
+      en:"An address gives a precise, fixed location—absolute location.",
+      ru:"Адрес указывает точную привязку — абсолютное местоположение."
+    },
+    points:1
+  },
+  {
+    prompt:"‘Near the river, south of the bridge’ is an example of:",
+    options:["Absolute location","Relative location","Longitude","Latitude"],
+    answer:1,
+    explain:{
+      en:"Relative location compares one place to another.",
+      ru:"Относительное местоположение описывает место через другие ориентиры."
+    },
+    points:1
+  },
+  {
+    prompt:"Lines that run east–west but measure north–south are:",
+    options:["Longitude","Latitude","Meridians","Time zones"],
+    answer:1,
+    explain:{
+      en:"Parallels of latitude run east–west and measure distance north/south of the Equator.",
+      ru:"Параллели широты идут с запада на восток и измеряют расстояние к северу/югу от экватора."
+    },
+    points:1
+  },
+  {
+    prompt:"The Prime Meridian is used to measure:",
+    options:["Latitude","Longitude","Altitude","Temperature"],
+    answer:1,
+    explain:{
+      en:"Longitude is measured east or west from the Prime Meridian (0°).",
+      ru:"Долготу измеряют к востоку/западу от нулевого меридиана (0°)."
+    },
+    points:1
+  },
+  {
+    prompt:"Which hemisphere is north of the Equator?",
+    options:["Northern Hemisphere","Southern Hemisphere","Eastern Hemisphere","Western Hemisphere"],
+    answer:0,
+    explain:{
+      en:"The Equator divides Earth into Northern and Southern Hemispheres.",
+      ru:"Экватор делит Землю на Северное и Южное полушария."
+    },
+    points:1
+  },
+  {
+    prompt:"A map’s scale shows:",
+    options:["Elevation changes","Direction only","Distance on map vs. ground","Thematic categories"],
+    answer:2,
+    explain:{
+      en:"Scale converts map distance to real-world distance.",
+      ru:"Масштаб переводит расстояния на карте в реальные."
+    },
+    points:1
+  },
+  {
+    prompt:"A map that shows countries, cities, and borders is a:",
+    options:["Physical map","Political map","Climate map","Land use map"],
+    answer:1,
+    explain:{
+      en:"Political maps emphasize human-made boundaries and settlements.",
+      ru:"Политические карты показывают границы и города."
+    },
+    points:1
+  },
+  {
+    prompt:"The study of weather and its causes is called:",
+    options:["Hydrology","Meteorology","Cartography","Geology"],
+    answer:1,
+    explain:{
+      en:"Meteorology focuses on weather processes and forecasting.",
+      ru:"Метеорология изучает процессы погоды и их причины."
+    },
+    points:1
+  },
+  {
+    prompt:"The long-term average of weather in a region is:",
+    options:["Climate","Season","Front","Forecast"],
+    answer:0,
+    explain:{
+      en:"Climate is the long-term pattern; weather is day-to-day.",
+      ru:"Климат — долгосрочная картина; погода — состояние «здесь и сейчас»."
+    },
+    points:1
+  },
+  {
+    prompt:"Hydrology is the study of:",
+    options:["Rocks","Landforms","Water","Soils"],
+    answer:2,
+    explain:{
+      en:"Hydrology examines water on Earth: rivers, lakes, groundwater, and cycles.",
+      ru:"Гидрология изучает воду на Земле: реки, озёра, подземные воды и их круговорот."
+    },
+    points:1
+  },
+  {
+    prompt:"Cartography is mainly concerned with:",
+    options:["Drawing and analyzing maps","Measuring earthquakes","Tracking animals","Growing crops"],
+    answer:0,
+    explain:{
+      en:"Cartography designs, produces, and interprets maps.",
+      ru:"Картография занимается созданием и анализом карт."
+    },
+    points:1
+  },
+  {
+    prompt:"Which term best describes mountains, rivers, and plains?",
+    options:["Human features","Physical features","Economic features","Political features"],
+    answer:1,
+    explain:{
+      en:"They are natural landforms and bodies of water—physical features.",
+      ru:"Это природные формы рельефа и водные объекты — физические особенности."
+    },
+    points:1
+  },
+  {
+    prompt:"Human geography focuses on:",
+    options:["Plate tectonics","Weather fronts","People and cultures","Ocean currents"],
+    answer:2,
+    explain:{
+      en:"Human geography studies populations, cultures, economies, and settlements.",
+      ru:"Человеческая география изучает население, культуры, хозяйство и расселение."
+    },
+    points:1
+  },
+  {
+    prompt:"‘Mesopotamia’ literally means:",
+    options:["Land of many mountains","Between the rivers","Beyond the desert","Island people"],
+    answer:1,
+    explain:{
+      en:"From Greek: ‘meso’ (between) + ‘potamos’ (rivers).",
+      ru:"От греч. ‘meso’ — между, ‘potamos’ — реки: «междуречье»."
+    },
+    points:1
+  },
+  {
+    prompt:"The two rivers that define Mesopotamia are the:",
+    options:["Nile and Jordan","Indus and Ganges","Tigris and Euphrates","Danube and Rhine"],
+    answer:2,
+    explain:{
+      en:"Mesopotamia lies between the Tigris and Euphrates rivers.",
+      ru:"Междуречье расположено между Тигром и Евфратом."
+    },
+    points:1
+  },
+  {
+    prompt:"A city-state is best described as:",
+    options:["A large empire","A city and the farmland around it under one government","A temporary camp","A religious temple"],
+    answer:1,
+    explain:{
+      en:"Each city-state governed a city and nearby countryside.",
+      ru:"Каждый полис управлял городом и прилегающими землями."
+    },
+    points:1
+  },
+  {
+    prompt:"In Mesopotamia, fertile silt was mainly deposited by:",
+    options:["Ocean tides","Seasonal river floods","Volcanoes","Desert winds"],
+    answer:1,
+    explain:{
+      en:"Floods of the Tigris and Euphrates left nutrient-rich silt.",
+      ru:"Разливы Тигра и Евфрата приносили плодородный ил."
+    },
+    points:1
+  },
+  {
+    prompt:"Irrigation systems in early Mesopotamia were used to:",
+    options:["Build pyramids","Protect from enemies","Control water for farming","Measure time"],
+    answer:2,
+    explain:{
+      en:"Canals, dikes, and reservoirs brought water to fields and prevented floods.",
+      ru:"Каналы, дамбы и водохранилища подавали воду на поля и сдерживали наводнения."
+    },
+    points:1
+  },
+  {
+    prompt:"A food surplus in early river civilizations often led to:",
+    options:["Population decline","More specialization of labor","Less trade","No cities"],
+    answer:1,
+    explain:{
+      en:"Surplus allowed people to become artisans, traders, and officials.",
+      ru:"Излишки позволяли появляться ремесленным, торговым и управленческим профессиям."
+    },
+    points:1
+  },
+  {
+    prompt:"Sumerian writing is known as:",
+    options:["Hieroglyphics","Runes","Cuneiform","Alphabetic script"],
+    answer:2,
+    explain:{
+      en:"Cuneiform used wedge-shaped marks pressed into clay tablets.",
+      ru:"Клинопись — клиновидные знаки на глиняных табличках."
+    },
+    points:1
+  },
+  {
+    prompt:"A ziggurat in a Sumerian city was primarily:",
+    options:["A market street","A stepped temple platform","A royal palace","A storage canal"],
+    answer:1,
+    explain:{
+      en:"Ziggurats were temple platforms for religious activities.",
+      ru:"Зиккураты — ступенчатые платформы храмов, центр религиозной жизни."
+    },
+    points:1
+  },
+  {
+    prompt:"Which factor MOST explains why Mesopotamia became a cradle of civilization?",
+    options:["Abundant gold","Harsh climate","Fertile land with rivers","High mountains"],
+    answer:2,
+    explain:{
+      en:"River valleys provided water, fertile soil, and transport routes.",
+      ru:"Речные долины давали воду, плодородные почвы и пути сообщения."
+    },
+    points:1
+  },
+  {
+    prompt:"Which statement about weather vs. climate is TRUE?",
+    options:[
+      "Weather is long-term; climate is daily.",
+      "Weather is daily; climate is long-term.",
+      "They mean the same thing.",
+      "Climate only describes wind."
+    ],
+    answer:1,
+    explain:{
+      en:"Weather changes day to day; climate is the long-term average.",
+      ru:"Погода меняется ежедневно; климат — долгосрочная средняя картина."
+    },
+    points:1
+  }
+  ],
+  Science: [
+  {
+    prompt:"What causes wind?",
+    options:["Differences in air pressure","Rotation of the Earth only","Equal temperature everywhere","The moon’s gravity"],
+    answer:0,
+    explain:{
+      en:"Wind occurs because air moves from areas of high pressure to areas of low pressure, due to uneven heating of Earth’s surface.",
+      ru:"Ветер возникает из-за перемещения воздуха из областей высокого давления в низкое — из-за неравномерного нагрева поверхности Земли."
+    },
+    points:1
+  },
+  {
+    prompt:"Which gas makes up most of the Earth’s atmosphere?",
+    options:["Oxygen","Nitrogen","Carbon dioxide","Hydrogen"],
+    answer:1,
+    explain:{
+      en:"About 78% of Earth’s atmosphere is nitrogen.",
+      ru:"Около 78% атмосферы Земли состоит из азота."
+    },
+    points:1
+  },
+  {
+    prompt:"Which atmospheric layer is closest to Earth’s surface?",
+    options:["Stratosphere","Thermosphere","Troposphere","Mesosphere"],
+    answer:2,
+    explain:{
+      en:"The troposphere is the lowest layer, where weather occurs.",
+      ru:"Тропосфера — нижний слой атмосферы, где формируется погода."
+    },
+    points:1
+  },
+  {
+    prompt:"Which layer contains the ozone layer?",
+    options:["Troposphere","Mesosphere","Stratosphere","Thermosphere"],
+    answer:2,
+    explain:{
+      en:"The ozone layer is found in the stratosphere; it absorbs ultraviolet radiation.",
+      ru:"Озоновый слой находится в стратосфере — он поглощает ультрафиолетовое излучение."
+    },
+    points:1
+  },
+  {
+    prompt:"As altitude increases, air pressure:",
+    options:["Increases","Decreases","Remains the same","First increases then decreases"],
+    answer:1,
+    explain:{
+      en:"Air pressure decreases with height because there are fewer air molecules above.",
+      ru:"С увеличением высоты давление уменьшается, так как над вами меньше воздуха."
+    },
+    points:1
+  },
+  {
+    prompt:"Which layer has auroras (northern lights)?",
+    options:["Stratosphere","Thermosphere","Troposphere","Exosphere"],
+    answer:1,
+    explain:{
+      en:"Auroras occur in the thermosphere, where charged particles from the Sun interact with gases.",
+      ru:"Северное сияние возникает в термосфере при взаимодействии частиц Солнца с газами атмосферы."
+    },
+    points:1
+  },
+  {
+    prompt:"Convection is heat transfer by:",
+    options:["Direct contact","Electromagnetic waves","Movement of fluids","Reflection of heat"],
+    answer:2,
+    explain:{
+      en:"Convection happens when warm fluid rises and cool fluid sinks, creating circulation.",
+      ru:"Конвекция — перенос тепла при движении жидкости или газа (тёплое поднимается, холодное опускается)."
+    },
+    points:1
+  },
+  {
+    prompt:"Radiation is heat transfer through:",
+    options:["Solids only","Direct touch","Empty space","Liquids"],
+    answer:2,
+    explain:{
+      en:"Radiation transfers energy as electromagnetic waves; no medium needed.",
+      ru:"Радиация (излучение) переносит энергию электромагнитными волнами, без участия вещества."
+    },
+    points:1
+  },
+  {
+    prompt:"Thermal conduction occurs when:",
+    options:["Heat moves by waves","Particles touch and transfer energy","Fluid circulates","Light is absorbed"],
+    answer:1,
+    explain:{
+      en:"In conduction, neighboring particles collide and transfer energy directly.",
+      ru:"При теплопроводности соседние частицы передают энергию при столкновениях."
+    },
+    points:1
+  },
+  {
+    prompt:"The main source of energy for Earth’s atmosphere is:",
+    options:["The Moon","The Sun","Volcanoes","Earth’s core"],
+    answer:1,
+    explain:{
+      en:"Solar energy drives weather, winds, and climate.",
+      ru:"Энергия Солнца — главный источник тепла и движения атмосферы."
+    },
+    points:1
+  },
+  {
+    prompt:"Local winds such as sea breezes occur because:",
+    options:["Earth rotates","Air pressure differences near land and sea","Magnetic fields","Rainfall increases"],
+    answer:1,
+    explain:{
+      en:"During day, land heats faster than water; warm air rises, cool sea air flows in.",
+      ru:"Днём суша нагревается быстрее воды, воздух над ней поднимается, а прохладный морской — устремляется с берега."
+    },
+    points:1
+  },
+  {
+    prompt:"Global winds that blow from west to east in mid-latitudes are called:",
+    options:["Trade winds","Polar easterlies","Westerlies","Jet streams"],
+    answer:2,
+    explain:{
+      en:"Westerlies dominate middle latitudes and blow from west to east.",
+      ru:"Западные ветры (westerlies) дуют в умеренных широтах с запада на восток."
+    },
+    points:1
+  },
+  {
+    prompt:"The Coriolis effect causes winds to:",
+    options:["Stop","Move in straight lines","Curve due to Earth’s rotation","Blow only north–south"],
+    answer:2,
+    explain:{
+      en:"Earth’s rotation deflects moving air—right in the Northern Hemisphere, left in the Southern.",
+      ru:"Из-за вращения Земли движение воздуха отклоняется: вправо в Северном, влево в Южном полушарии."
+    },
+    points:1
+  },
+  {
+    prompt:"Which atmospheric gas is essential for photosynthesis?",
+    options:["Oxygen","Nitrogen","Carbon dioxide","Hydrogen"],
+    answer:2,
+    explain:{
+      en:"Plants use carbon dioxide, water, and sunlight to make food.",
+      ru:"Растения используют углекислый газ, воду и свет для фотосинтеза."
+    },
+    points:1
+  },
+  {
+    prompt:"Which form of precipitation is frozen rain?",
+    options:["Snow","Sleet","Hail","Dew"],
+    answer:1,
+    explain:{
+      en:"Sleet is rain that freezes as it falls through cold air.",
+      ru:"Ледяной дождь (sleet) — дождевые капли, замерзающие при падении."
+    },
+    points:1
+  },
+  {
+    prompt:"When warm air rises and cool air sinks, it creates:",
+    options:["A convection current","A hurricane","Condensation","Radiation"],
+    answer:0,
+    explain:{
+      en:"This circular movement transfers heat through convection.",
+      ru:"Такое круговое движение воздуха — конвекционный поток, перенос тепла."
+    },
+    points:1
+  },
+  {
+    prompt:"Which layer contains most of the atmosphere’s mass?",
+    options:["Troposphere","Stratosphere","Mesosphere","Exosphere"],
+    answer:0,
+    explain:{
+      en:"Nearly 80% of the atmosphere’s mass is in the troposphere.",
+      ru:"Около 80% массы атмосферы сосредоточено в тропосфере."
+    },
+    points:1
+  },
+  {
+    prompt:"What happens to temperature as altitude increases in the troposphere?",
+    options:["Increases","Decreases","Stays constant","Rises sharply then drops"],
+    answer:1,
+    explain:{
+      en:"It gets colder with height in the troposphere.",
+      ru:"В тропосфере температура понижается с высотой."
+    },
+    points:1
+  },
+  {
+    prompt:"Air pressure is caused by:",
+    options:["Wind speed","Weight of the air","Solar flares","Cloud movement"],
+    answer:1,
+    explain:{
+      en:"Air molecules push on surfaces creating pressure.",
+      ru:"Давление создаётся весом воздуха, давящего на поверхности."
+    },
+    points:1
+  },
+  {
+    prompt:"Which device measures air pressure?",
+    options:["Thermometer","Anemometer","Barometer","Hygrometer"],
+    answer:2,
+    explain:{
+      en:"A barometer measures atmospheric pressure.",
+      ru:"Барометр измеряет атмосферное давление."
+    },
+    points:1
+  },
+  {
+    prompt:"Which layer protects life by absorbing UV radiation?",
+    options:["Mesosphere","Stratosphere","Troposphere","Exosphere"],
+    answer:1,
+    explain:{
+      en:"The ozone layer in the stratosphere absorbs harmful ultraviolet rays.",
+      ru:"Озоновый слой в стратосфере защищает от вредного ультрафиолета."
+    },
+    points:1
+  },
+  {
+    prompt:"Acid rain is caused mainly by:",
+    options:["Nitrogen and oxygen","Carbon dioxide only","Sulfur dioxide and nitrogen oxides","Dust storms"],
+    answer:2,
+    explain:{
+      en:"Sulfur and nitrogen oxides mix with water vapor to form acids.",
+      ru:"Оксиды серы и азота соединяются с водяным паром, образуя кислотные осадки."
+    },
+    points:1
+  },
+  {
+    prompt:"The greenhouse effect keeps Earth:",
+    options:["Too hot to live","Warm enough for life","Constantly cooling","Covered in ice"],
+    answer:1,
+    explain:{
+      en:"Greenhouse gases trap heat, keeping Earth’s surface at a life-supporting temperature.",
+      ru:"Парниковые газы удерживают тепло, сохраняя Землю достаточно тёплой для жизни."
+    },
+    points:1
+  },
+  {
+    prompt:"Too much greenhouse gas leads to:",
+    options:["Global warming","Cooling","Stable climate","No change"],
+    answer:0,
+    explain:{
+      en:"Excess carbon dioxide and methane cause global temperature rise.",
+      ru:"Избыток CO₂ и метана приводит к глобальному потеплению."
+    },
+    points:1
+  },
+  {
+    prompt:"A car’s catalytic converter helps reduce:",
+    options:["Noise","Heat","Air pollution","Wind speed"],
+    answer:2,
+    explain:{
+      en:"Catalytic converters change harmful gases into less harmful ones.",
+      ru:"Катализаторы уменьшают загрязнение, превращая вредные газы в безопасные."
+    },
+    points:1
+  },
+  {
+    prompt:"What kind of energy drives the water cycle?",
+    options:["Wind energy","Solar energy","Geothermal energy","Nuclear energy"],
+    answer:1,
+    explain:{
+      en:"The Sun’s energy evaporates water and powers the cycle.",
+      ru:"Энергия Солнца испаряет воду и запускает круговорот."
+    },
+    points:1
+  },
+  {
+    prompt:"Which form of heat transfer allows the Sun’s rays to warm Earth?",
+    options:["Convection","Conduction","Radiation","Reflection"],
+    answer:2,
+    explain:{
+      en:"Radiation transfers energy across space.",
+      ru:"Излучение передаёт энергию через вакуум."
+    },
+    points:1
+  },
+  {
+    prompt:"Global warming may be caused by:",
+    options:["A decrease in greenhouse gases","An increase in greenhouse gases","The escape of thermal energy","The escape of radiation"],
+    answer:1,
+    explain:{
+      en:"Rising greenhouse gas concentrations trap more heat, leading to global warming.",
+      ru:"Увеличение количества парниковых газов усиливает удержание тепла и вызывает глобальное потепление."
+    },
+    points:1
+  },
+  {
+    prompt:"Wind occurs because of differences in:",
+    options:["Latitude","Air pressure","Nitrogen levels","Humidity"],
+    answer:1,
+    explain:{
+      en:"Air moves from areas of higher to lower pressure.",
+      ru:"Воздух движется из областей высокого давления в области низкого давления."
+    },
+    points:1
+  },
+  {
+    prompt:"The winds that blow from 30° to 60° latitude in both hemispheres are called:",
+    options:["Westerlies","Polar easterlies","Trade winds","Doldrums"],
+    answer:0,
+    explain:{
+      en:"Westerlies blow from west to east in mid-latitudes.",
+      ru:"Западные ветры (Westerlies) дуют в умеренных широтах с запада на восток."
+    },
+    points:1
+  },
+  {
+    prompt:"The winds that blow from the poles to 60° latitude in both hemispheres are called:",
+    options:["Westerlies","Polar easterlies","Trade winds","Doldrums"],
+    answer:1,
+    explain:{
+      en:"Polar easterlies blow from east to west near the poles.",
+      ru:"Полярные восточные ветры дуют от полюсов к 60° широты с востока на запад."
+    },
+    points:1
+  },
+  {
+    prompt:"What is an example of a primary pollutant?",
+    options:["Ozone","Sea salt","Acid rain","Smog"],
+    answer:1,
+    explain:{
+      en:"Primary pollutants are emitted directly — like sea salt or volcanic ash.",
+      ru:"Первичные загрязнители выбрасываются напрямую, например морская соль или пепел."
+    },
+    points:1
+  },
+  {
+    prompt:"What is the largest source of human-caused air pollution in the U.S.?",
+    options:["Chemical waste","Vehicle exhaust","Smoke from power plants","Ozone"],
+    answer:1,
+    explain:{
+      en:"Cars and trucks are the main source of anthropogenic air pollution.",
+      ru:"Автомобили и грузовики — основной источник загрязнения воздуха человеком."
+    },
+    points:1
+  },
+  {
+    prompt:"What is the greatest problem created by the ozone hole?",
+    options:[
+      "It allows more UV rays to reach Earth’s atmosphere",
+      "It allows more UV rays to reach Earth’s surface",
+      "It allows more UV rays to escape Earth’s atmosphere",
+      "It blocks UV rays completely"
+    ],
+    answer:1,
+    explain:{
+      en:"The ozone hole lets more harmful UV radiation reach Earth’s surface.",
+      ru:"Озоновая дыра пропускает больше вредного ультрафиолета на поверхность Земли."
+    },
+    points:1
+  },
+  {
+    prompt:"A vehicle that runs on both electricity and gasoline is called:",
+    options:["Catalytic converter","Hybrid car","Hydrogen car","Low-emission car"],
+    answer:1,
+    explain:{
+      en:"Hybrid cars combine electric and gasoline engines to reduce emissions.",
+      ru:"Гибридные автомобили сочетают электрический и бензиновый двигатели, уменьшая выбросы."
+    },
+    points:1
+  },
+  {
+    prompt:"What is rain, sleet, or snow with lots of acids called?",
+    options:["Acid shock","Acid precipitation","Scattered rain","Acid wash"],
+    answer:1,
+    explain:{
+      en:"Acid precipitation forms when sulfur and nitrogen oxides mix with water vapor.",
+      ru:"Кислотные осадки образуются, когда оксиды серы и азота соединяются с водяным паром."
+    },
+    points:1
+  },
+  {
+    prompt:"What is smog made of?",
+    options:["Ozone and vehicle exhaust","Smoke and ozone","Ozone and fog","Dust and CO₂"],
+    answer:0,
+    explain:{
+      en:"Smog forms from sunlight reacting with vehicle emissions and ozone.",
+      ru:"Смог образуется при реакции солнечного света с выхлопами транспорта и озоном."
+    },
+    points:1
+  },
+  {
+    prompt:"Energy that moves as electromagnetic waves is called:",
+    options:["Convection","Thermal conduction","Radiation","Reflection"],
+    answer:2,
+    explain:{
+      en:"Radiation transfers heat through space without contact.",
+      ru:"Излучение переносит тепло через пространство без прямого контакта."
+    },
+    points:1
+  },
+  {
+    prompt:"When heat moves through something solid, it is called:",
+    options:["Convection","Thermal conduction","Radiation","Absorption"],
+    answer:1,
+    explain:{
+      en:"Conduction occurs when particles in solids collide and transfer heat.",
+      ru:"Теплопроводность происходит при столкновении частиц в твёрдых телах."
+    },
+    points:1
+  },
+  {
+    prompt:"When the global temperature rises gradually, it is called:",
+    options:["Thermal conduction","Global warming","Convection","Ozone depletion"],
+    answer:1,
+    explain:{
+      en:"Global warming refers to the long-term rise in Earth’s average temperature.",
+      ru:"Глобальное потепление — постепенное повышение средней температуры на Земле."
+    },
+    points:1
+  },
+  {
+    prompt:"Warm air rising and cool air sinking creates:",
+    options:["Radiation","Convection current","Thermal conduction","Greenhouse effect"],
+    answer:1,
+    explain:{
+      en:"This circulation transfers heat in fluids and gases.",
+      ru:"Такое движение создаёт конвекционный поток — перенос тепла в жидкостях и газах."
+    },
+    points:1
+  },
+  {
+    prompt:"Which layer of the atmosphere is densest and has 90% of its mass?",
+    options:["Thermosphere","Mesosphere","Stratosphere","Troposphere"],
+    answer:3,
+    explain:{
+      en:"The troposphere contains almost 90% of atmospheric mass.",
+      ru:"В тропосфере сосредоточено почти 90% массы атмосферы."
+    },
+    points:1
+  },
+  {
+    prompt:"Why do nighttime land breezes occur near oceans?",
+    options:["Land heats faster","Land cools faster","Water cools faster","Air pressure stays equal"],
+    answer:1,
+    explain:{
+      en:"At night, land cools faster, creating high pressure that pushes air toward warmer sea air.",
+      ru:"Ночью суша остывает быстрее воды, давление повышается, воздух движется к морю — возникает бриз."
+    },
+    points:1
+  },
+  {
+    prompt:"How is the greenhouse effect similar to a glass greenhouse?",
+    options:["Both reflect sunlight away","Both trap heat energy","Both block all UV rays","Both cool Earth"],
+    answer:1,
+    explain:{
+      en:"Both allow sunlight in but prevent heat from escaping.",
+      ru:"И атмосфера, и стекло теплицы пропускают свет, но удерживают тепло."
+    },
+    points:1
+  },
+  {
+    prompt:"Compare ozone on the ground and in the stratosphere.",
+    options:["Ground ozone helps plants; upper ozone is harmful","Ground ozone is harmful; upper ozone protects life","They are the same","Both are greenhouse gases"],
+    answer:1,
+    explain:{
+      en:"Ground ozone is a pollutant; stratospheric ozone shields Earth from UV radiation.",
+      ru:"Приземный озон вреден, а стратосферный защищает от ультрафиолета."
+    },
+    points:1
+  },
+  {
+    prompt:"Does air contain anything other than gases?",
+    options:["No, only gases","Yes, dust and water","Only moisture","Only nitrogen and oxygen"],
+    answer:1,
+    explain:{
+      en:"Air contains gases, dust, pollen, and water droplets.",
+      ru:"Воздух содержит не только газы, но и пыль, капли воды и пыльцу."
+    },
+    points:1
+  },
+  {
+    prompt:"List the layers of the atmosphere starting from the surface.",
+    options:["Thermosphere, Mesosphere, Stratosphere, Troposphere","Troposphere, Stratosphere, Mesosphere, Thermosphere","Mesosphere, Troposphere, Stratosphere, Thermosphere","Exosphere only"],
+    answer:1,
+    explain:{
+      en:"The correct order from Earth outward is: Troposphere → Stratosphere → Mesosphere → Thermosphere.",
+      ru:"Порядок слоёв от Земли: тропосфера → стратосфера → мезосфера → термосфера."
+    },
+    points:1
+  },
+  {
+    prompt:"Name two types of breezes from local topography.",
+    options:["Mountain and valley breezes","Sea and land breezes","Equatorial and polar breezes","Hot and cold breezes"],
+    answer:0,
+    explain:{
+      en:"Mountains cause cool air to flow down at night; valleys push warm air up by day.",
+      ru:"Горные бризы дуют вниз ночью, долинные — вверх днём."
+    },
+    points:1
+  },
+  {
+    prompt:"Which of these are secondary pollutants?",
+    options:["Smog and acid rain","Tobacco smoke and dust","CO₂ and SO₂","Sulfur and methane"],
+    answer:0,
+    explain:{
+      en:"Smog and acid rain form from chemical reactions in the atmosphere — secondary pollutants.",
+      ru:"Смог и кислотные дожди образуются при химических реакциях в атмосфере — вторичные загрязнители."
+    },
+    points:1
+  },
+  {
+    prompt:"Two health problems from breathing polluted air include:",
+    options:["Headache and coughing","Better sleep","Higher energy","Stronger lungs"],
+    answer:0,
+    explain:{
+      en:"Polluted air can cause coughing, headaches, allergies, and lung diseases.",
+      ru:"Загрязнённый воздух вызывает кашель, головные боли, аллергию и болезни лёгких."
+    },
+    points:1
+  },
+  {
+    prompt:"Why do people say mountain air is 'thin'?",
+    options:["It lacks oxygen","It has more nitrogen","It is colder","It is polluted"],
+    answer:0,
+    explain:{
+      en:"Air pressure and oxygen concentration are lower at high altitudes.",
+      ru:"На высоте воздух разрежен — меньше кислорода и давление ниже."
+    },
+    points:1
+  },
+  {
+    prompt:"Heat transfer that occurs without direct contact is called:",
+    options:["Conduction","Convection","Radiation","Reflection"],
+    answer:2,
+    explain:{
+      en:"Radiation transfers heat through electromagnetic waves — no contact needed.",
+      ru:"Излучение переносит тепло через электромагнитные волны, без соприкосновения."
+    },
+    points:1
+  },
+  {
+    prompt:"Heat transfer through direct particle contact is known as:",
+    options:["Conduction","Convection","Radiation","Evaporation"],
+    answer:0,
+    explain:{
+      en:"Conduction happens when heat passes through solids by direct contact of molecules.",
+      ru:"Теплопроводность — это передача тепла через прямой контакт молекул в твёрдых телах."
+    },
+    points:1
+  },
+  {
+    prompt:"Which type of heat transfer occurs in fluids due to density differences?",
+    options:["Conduction","Radiation","Convection","Absorption"],
+    answer:2,
+    explain:{
+      en:"Convection transfers heat through the movement of fluids or gases.",
+      ru:"Конвекция переносит тепло при движении жидкостей или газов из-за различий плотности."
+    },
+    points:1
+  },
+  {
+    prompt:"Which layer of the atmosphere contains most of the water vapor and weather?",
+    options:["Stratosphere","Troposphere","Mesosphere","Thermosphere"],
+    answer:1,
+    explain:{
+      en:"The troposphere has nearly all weather events and water vapor.",
+      ru:"Почти вся вода и погодные явления сосредоточены в тропосфере."
+    },
+    points:1
+  },
+  {
+    prompt:"What process describes water vapor turning into liquid water?",
+    options:["Evaporation","Condensation","Sublimation","Freezing"],
+    answer:1,
+    explain:{
+      en:"Condensation forms clouds when vapor cools and changes into droplets.",
+      ru:"Конденсация — переход пара в жидкость; образует облака."
+    },
+    points:1
+  },
+  {
+    prompt:"What form of energy drives the water cycle?",
+    options:["Solar energy","Wind energy","Nuclear energy","Sound energy"],
+    answer:0,
+    explain:{
+      en:"The Sun’s energy causes evaporation and powers the water cycle.",
+      ru:"Энергия Солнца вызывает испарение и обеспечивает круговорот воды."
+    },
+    points:1
+  },
+  {
+    prompt:"Which instrument measures temperature?",
+    options:["Thermometer","Barometer","Anemometer","Rain gauge"],
+    answer:0,
+    explain:{
+      en:"A thermometer measures air temperature.",
+      ru:"Термометр измеряет температуру воздуха."
+    },
+    points:1
+  },
+  {
+    prompt:"Which instrument measures wind speed?",
+    options:["Thermometer","Barometer","Anemometer","Rain gauge"],
+    answer:2,
+    explain:{
+      en:"An anemometer measures the speed of wind.",
+      ru:"Анемометр измеряет скорость ветра."
+    },
+    points:1
+  },
+  {
+    prompt:"Which instrument measures rainfall?",
+    options:["Thermometer","Anemometer","Rain gauge","Barometer"],
+    answer:2,
+    explain:{
+      en:"A rain gauge measures precipitation.",
+      ru:"Осадкомер измеряет количество выпавших осадков."
+    },
+    points:1
+  },
+  {
+    prompt:"Which instrument measures humidity?",
+    options:["Barometer","Thermometer","Hygrometer","Anemometer"],
+    answer:2,
+    explain:{
+      en:"A hygrometer measures the amount of water vapor in the air.",
+      ru:"Гигрометр измеряет влажность воздуха."
+    },
+    points:1
+  },
+  {
+    prompt:"What causes sea breezes during the day?",
+    options:["Land heats faster than water","Water heats faster than land","Air pressure equalizes","Clouds form"],
+    answer:0,
+    explain:{
+      en:"Land warms faster, making air rise and drawing cooler air from the sea.",
+      ru:"Суша нагревается быстрее, воздух поднимается, и с моря дует прохладный ветер."
+    },
+    points:1
+  },
+  {
+    prompt:"Which global wind belt lies between the equator and 30° latitude?",
+    options:["Trade winds","Westerlies","Polar easterlies","Jet stream"],
+    answer:0,
+    explain:{
+      en:"Trade winds blow steadily from east to west near the equator.",
+      ru:"Пассаты дуют от востока к западу между экватором и 30° широты."
+    },
+    points:1
+  },
+  {
+    prompt:"What causes the Coriolis effect?",
+    options:["The Moon’s orbit","Earth’s rotation","Air friction","Solar radiation"],
+    answer:1,
+    explain:{
+      en:"Earth’s rotation makes moving air and water curve.",
+      ru:"Вращение Земли вызывает отклонение движения воздуха и воды."
+    },
+    points:1
+  },
+  {
+    prompt:"What human activity contributes most to acid rain?",
+    options:["Burning fossil fuels","Fishing","Planting trees","Using solar panels"],
+    answer:0,
+    explain:{
+      en:"Burning coal and oil releases sulfur and nitrogen oxides that form acid rain.",
+      ru:"Сжигание нефти и угля выделяет оксиды серы и азота, вызывающие кислотные дожди."
+    },
+    points:1
+  },
+  {
+    prompt:"Which gas contributes most to global warming?",
+    options:["Nitrogen","Oxygen","Carbon dioxide","Helium"],
+    answer:2,
+    explain:{
+      en:"CO₂ traps heat and is the main greenhouse gas from human activities.",
+      ru:"Углекислый газ удерживает тепло и является основным парниковым газом, создаваемым человеком."
+    },
+    points:1
+  },
+  {
+    prompt:"Which term refers to the warming of Earth due to trapped heat?",
+    options:["Photosynthesis","Greenhouse effect","Condensation","Evaporation"],
+    answer:1,
+    explain:{
+      en:"The greenhouse effect keeps Earth warm by trapping heat in the atmosphere.",
+      ru:"Парниковый эффект удерживает тепло в атмосфере, согревая Землю."
+    },
+    points:1
+  },
+  {
+    prompt:"Which gas forms the ozone layer?",
+    options:["O₃","CO₂","O₂","H₂O"],
+    answer:0,
+    explain:{
+      en:"Ozone (O₃) molecules in the stratosphere absorb ultraviolet radiation.",
+      ru:"Озон (O₃) в стратосфере поглощает ультрафиолетовое излучение."
+    },
+    points:1
+  },
+  {
+    prompt:"How can individuals help reduce air pollution?",
+    options:["Use public transportation","Burn more fuel","Waste electricity","Drive more"],
+    answer:0,
+    explain:{
+      en:"Using public transport and saving energy reduces emissions.",
+      ru:"Использование общественного транспорта и экономия энергии снижают выбросы загрязнителей."
+    },
+    points:1
+  },
+  {
+    prompt:"What happens to air pressure as you climb a mountain?",
+    options:["It increases","It decreases","It remains constant","It doubles"],
+    answer:1,
+    explain:{
+      en:"Air pressure decreases with altitude because there are fewer air molecules above.",
+      ru:"Давление падает с высотой, так как над вами меньше воздуха."
+    },
+    points:1
+  },
+  {
+    prompt:"What protects Earth from harmful solar radiation?",
+    options:["Ozone layer","Clouds","Dust","CO₂"],
+    answer:0,
+    explain:{
+      en:"The ozone layer absorbs ultraviolet rays from the Sun.",
+      ru:"Озоновый слой поглощает ультрафиолетовые лучи Солнца."
+    },
+    points:1
+  },
+  {
+    prompt:"Why is the thermosphere very hot but feels cold?",
+    options:["High particle density","Few particles to transfer heat","Reflective gases","Magnetic fields"],
+    answer:1,
+    explain:{
+      en:"Few air molecules mean little heat transfer, even though particles move fast.",
+      ru:"Мало молекул — почти нет теплопередачи, хотя сами частицы движутся быстро и горячие."
+    },
+    points:1
+  },
+  {
+    prompt:"What is the main cause of the hole in the ozone layer?",
+    options:["CFCs (chlorofluorocarbons)","Carbon dioxide","Methane","Nitrogen oxides"],
+    answer:0,
+    explain:{
+      en:"CFCs break down ozone molecules in the stratosphere.",
+      ru:"Хлорфторуглероды (CFC) разрушают молекулы озона в стратосфере."
+    },
+    points:1
+  },
+  {
+    prompt:"Which part of the atmosphere contains satellites?",
+    options:["Exosphere","Troposphere","Stratosphere","Mesosphere"],
+    answer:0,
+    explain:{
+      en:"Satellites orbit in the outermost layer, the exosphere.",
+      ru:"Спутники обращаются в верхнем слое атмосферы — экзосфере."
+    },
+    points:1
+  },
+  {
+    prompt:"Which property of air decreases as humidity increases?",
+    options:["Density","Temperature","Wind speed","Pressure"],
+    answer:0,
+    explain:{
+      en:"Humid air is less dense than dry air because water vapor is lighter than nitrogen or oxygen.",
+      ru:"Влажный воздух менее плотный, чем сухой, так как водяной пар легче азота и кислорода."
+    },
+    points:1
+  },
+  {
+    prompt:"How do plants help reduce greenhouse gases?",
+    options:["By producing oxygen","By absorbing CO₂","By emitting methane","By cooling soil"],
+    answer:1,
+    explain:{
+      en:"Plants absorb carbon dioxide during photosynthesis, reducing its amount in the air.",
+      ru:"Растения поглощают CO₂ во время фотосинтеза, уменьшая его количество в атмосфере."
+    },
+    points:1
+  },
+  {
+    prompt:"Which human activity increases carbon dioxide levels the most?",
+    options:["Driving cars","Swimming","Planting trees","Walking"],
+    answer:0,
+    explain:{
+      en:"Burning fuel in vehicles releases large amounts of CO₂.",
+      ru:"Сжигание топлива в транспорте выделяет много углекислого газа."
+    },
+    points:1
+  },
+  {
+    prompt:"What is one effect of global warming on oceans?",
+    options:["Rising sea levels","Freezing oceans","Decreased evaporation","Stronger ozone layer"],
+    answer:0,
+    explain:{
+      en:"Melting glaciers and thermal expansion cause sea levels to rise.",
+      ru:"Таяние льдов и расширение воды при нагреве повышают уровень океанов."
+    },
+    points:1
+  },
+  {
+    prompt:"Why is air considered a mixture?",
+    options:["It is one pure gas","It contains several gases","It is a solid","It is water vapor only"],
+    answer:1,
+    explain:{
+      en:"Air is a mixture of nitrogen, oxygen, carbon dioxide, and other gases.",
+      ru:"Воздух состоит из смеси азота, кислорода, углекислого газа и других газов."
+    },
+    points:1
+  }
+],
+
+  English: [
+  {
+    prompt:"Which word is a noun in the sentence: 'The dog barked loudly'?",
+    options:["dog","barked","loudly","the"],
+    answer:0,
+    explain:{
+      en:"A noun names a person, place, or thing — 'dog' is the thing.",
+      ru:"Существительное обозначает предмет или существо — здесь это 'dog'."
+    },
+    points:1
+  },
+  {
+    prompt:"Which word is an adjective in the sentence: 'She wore a red dress'?",
+    options:["She","wore","red","dress"],
+    answer:2,
+    explain:{
+      en:"An adjective describes a noun — 'red' describes 'dress'.",
+      ru:"Прилагательное описывает существительное — 'red' описывает 'dress'."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct verb: 'She ____ to school every day.'",
+    options:["go","goes","gone","going"],
+    answer:1,
+    explain:{
+      en:"Third person singular requires -s: She goes to school.",
+      ru:"Для 3-го лица ед. числа добавляется -s: She goes to school."
+    },
+    points:1
+  },
+  {
+    prompt:"Identify the pronoun: 'They are watching a movie.'",
+    options:["They","are","watching","movie"],
+    answer:0,
+    explain:{
+      en:"A pronoun replaces a noun — 'They' replaces people or things.",
+      ru:"Местоимение заменяет существительное — 'They' заменяет людей или предметы."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct form: 'He has ____ his homework.'",
+    options:["do","did","done","does"],
+    answer:2,
+    explain:{
+      en:"After 'has' use past participle — 'done'.",
+      ru:"После 'has' используется причастие прошедшего времени — 'done'."
+    },
+    points:1
+  },
+  {
+    prompt:"Which word is an adverb in: 'She sings beautifully'?",
+    options:["She","sings","beautifully","song"],
+    answer:2,
+    explain:{
+      en:"An adverb describes how something is done — 'beautifully' describes 'sings'.",
+      ru:"Наречие описывает, как выполняется действие — 'beautifully' описывает 'sings'."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct preposition: 'The book is ____ the table.'",
+    options:["in","on","at","underneath"],
+    answer:1,
+    explain:{
+      en:"'On' is used for surface contact — The book is on the table.",
+      ru:"'On' используется, если предмет лежит на поверхности — книга на столе."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct article: 'I saw ____ elephant at the zoo.'",
+    options:["a","an","the","no article"],
+    answer:1,
+    explain:{
+      en:"Use 'an' before vowel sounds — 'an elephant'.",
+      ru:"Артикль 'an' ставится перед словами, начинающимися с гласного звука."
+    },
+    points:1
+  },
+  {
+    prompt:"Which sentence is in the past tense?",
+    options:["She plays piano.","She is playing piano.","She played piano.","She will play piano."],
+    answer:2,
+    explain:{
+      en:"'Played' shows completed action in the past.",
+      ru:"'Played' указывает на завершённое действие в прошедшем времени."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct verb form: 'They ____ been waiting for an hour.'",
+    options:["has","have","had","is"],
+    answer:1,
+    explain:{
+      en:"Plural subject 'they' requires 'have'.",
+      ru:"Множественное подлежащее требует 'have'."
+    },
+    points:1
+  },
+  {
+    prompt:"Which sentence uses a comparative adjective correctly?",
+    options:[
+      "This book is gooder than that one.",
+      "This book is more good than that one.",
+      "This book is better than that one.",
+      "This book is best than that one."
+    ],
+    answer:2,
+    explain:{
+      en:"'Better' is the correct comparative form of 'good'.",
+      ru:"'Better' — правильная сравнительная форма от 'good'."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct sentence:",
+    options:[
+      "She don’t like coffee.",
+      "She doesn’t like coffee.",
+      "She don’t likes coffee.",
+      "She doesn’t likes coffee."
+    ],
+    answer:1,
+    explain:{
+      en:"In present simple negative, use 'doesn’t + base verb'.",
+      ru:"В отрицательных предложениях Present Simple используется 'doesn’t + инфинитив'."
+    },
+    points:1
+  },
+  {
+    prompt:"What punctuation is used at the end of a question?",
+    options:[".","!","?",","],
+    answer:2,
+    explain:{
+      en:"Questions end with a question mark.",
+      ru:"Вопросительные предложения заканчиваются знаком вопроса '?'."
+    },
+    points:1
+  },
+  {
+    prompt:"Identify the subject: 'The tall man opened the door.'",
+    options:["tall","man","door","opened"],
+    answer:1,
+    explain:{
+      en:"The subject is the person doing the action — 'man'.",
+      ru:"Подлежащее — тот, кто выполняет действие — 'man'."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct conjunction: 'I wanted to go, ____ it was raining.'",
+    options:["so","because","but","although"],
+    answer:2,
+    explain:{
+      en:"'But' shows contrast between two ideas.",
+      ru:"'But' выражает противопоставление между частями предложения."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct pronoun: 'This book is mine, not ____.'",
+    options:["yours","your","you","their"],
+    answer:0,
+    explain:{
+      en:"Possessive pronoun for 'you' is 'yours'.",
+      ru:"Притяжательное местоимение от 'you' — 'yours'."
+    },
+    points:1
+  },
+  {
+    prompt:"Which word completes the simile: 'as busy as a ____'?",
+    options:["dog","bee","cat","fox"],
+    answer:1,
+    explain:{
+      en:"Common simile: 'as busy as a bee' means very active.",
+      ru:"Обычное сравнение: 'busy as a bee' — очень занятой."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the sentence with correct capitalization.",
+    options:[
+      "i like english.",
+      "I Like English.",
+      "I like english.",
+      "I like English."
+    ],
+    answer:3,
+    explain:{
+      en:"Always capitalize 'I' and language names.",
+      ru:"'I' и названия языков всегда пишутся с заглавной буквы."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct spelling:",
+    options:["definately","definitely","defenetly","definitly"],
+    answer:1,
+    explain:{
+      en:"Correct spelling is 'definitely'.",
+      ru:"Правильное написание — 'definitely'."
+    },
+    points:1
+  },
+  {
+    prompt:"Which sentence is in the future tense?",
+    options:["I eat now.","I am eating.","I will eat.","I ate."],
+    answer:2,
+    explain:{
+      en:"'Will eat' shows future action.",
+      ru:"'Will eat' выражает действие в будущем времени."
+    },
+    points:1
+  },
+  {
+    prompt:"Which is a declarative sentence?",
+    options:[
+      "Where are you going?",
+      "Please open the door.",
+      "I like chocolate.",
+      "Stop talking!"
+    ],
+    answer:2,
+    explain:{
+      en:"Declarative sentences state facts or opinions.",
+      ru:"Повествовательные предложения сообщают факт или мнение."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct plural form: 'child'",
+    options:["childs","childes","children","childrens"],
+    answer:2,
+    explain:{
+      en:"The irregular plural of 'child' is 'children'.",
+      ru:"Неправильная форма множественного числа от 'child' — 'children'."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct sentence:",
+    options:[
+      "He don’t have any friends.",
+      "He doesn’t have any friends.",
+      "He doesn’t has any friends.",
+      "He not have any friends."
+    ],
+    answer:1,
+    explain:{
+      en:"Use 'doesn’t + base form' for negatives in present simple.",
+      ru:"В отрицаниях Present Simple используется 'doesn’t + инфинитив'."
+    },
+    points:1
+  },
+  {
+    prompt:"Which sentence is correct?",
+    options:[
+      "Their going to the park.",
+      "They’re going to the park.",
+      "There going to the park.",
+      "They going to the park."
+    ],
+    answer:1,
+    explain:{
+      en:"'They’re' = 'they are' → correct contraction.",
+      ru:"'They’re' — сокращённая форма от 'they are'."
+    },
+    points:1
+  },
+  {
+    prompt:"Choose the correct form: 'If it ____ tomorrow, we will stay home.'",
+    options:["rain","rains","rained","is raining"],
+    answer:1,
+    explain:{
+      en:"In conditional I, use present simple after 'if'.",
+      ru:"В условных предложениях I типа после 'if' используется Present Simple: 'rains'."
+    },
+    points:1
+  },
+  {
+    prompt:"What is the synonym of 'happy'?",
+    options:["sad","angry","glad","tired"],
+    answer:2,
+    explain:{
+      en:"'Glad' means the same as 'happy'.",
+      ru:"'Glad' — синоним 'happy'."
+    },
+    points:1
+  },
+  {
+    prompt:"Which sentence has correct subject–verb agreement?",
+    options:[
+      "The boys plays football.",
+      "The boy play football.",
+      "The boys play football.",
+      "The boys playing football."
+    ],
+    answer:2,
+    explain:{
+      en:"Plural subject → plural verb: 'boys play'.",
+      ru:"Множественное подлежащее требует глагол без -s: 'boys play'."
+    },
+    points:1
+  },
+  {
+    prompt:"Identify the simple predicate: 'The little girl laughed loudly.'",
+    options:["little","girl","laughed","loudly"],
+    answer:2,
+    explain:{
+      en:"The predicate is the main verb — 'laughed'.",
+      ru:"Сказуемое — главный глагол в предложении — 'laughed'."
+    },
+    points:1
+  }
+],
+
+  Math: [
+  {
+    prompt:"What is the value of |−8|?",
+    options:["−8","0","8","1"],
+    answer:2,
+    explain:{
+      en:"Absolute value means distance from zero, always positive.",
+      ru:"Модуль числа — это расстояние от нуля, всегда положительное."
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify: (−3)²",
+    options:["−9","9","6","−6"],
+    answer:1,
+    explain:{
+      en:"(−3)² = (−3)×(−3) = 9.",
+      ru:"(−3)² = (−3)×(−3) = 9."
+    },
+    points:1
+  },
+  {
+    prompt:"Evaluate: 5 × (−2)",
+    options:["−10","10","3","0"],
+    answer:0,
+    explain:{
+      en:"Positive × negative = negative, so 5×(−2)=−10.",
+      ru:"Положительное × отрицательное = отрицательное, 5×(−2)=−10."
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify: (−12) ÷ 3",
+    options:["−36","4","−4","9"],
+    answer:2,
+    explain:{
+      en:"Negative ÷ positive = negative; 12÷3=4 → −4.",
+      ru:"Отрицательное ÷ положительное = отрицательное; 12÷3=4 → −4."
+    },
+    points:1
+  },
+  {
+    prompt:"Which is a rational number?",
+    options:["√2","π","3/4","0.333… (repeating)"],
+    answer:2,
+    explain:{
+      en:"Rational numbers can be written as a fraction of integers.",
+      ru:"Рациональные числа выражаются как дробь из целых чисел."
+    },
+    points:1
+  },
+  {
+    prompt:"What is the reciprocal of 3/5?",
+    options:["5/3","−5/3","3/5","−3/5"],
+    answer:0,
+    explain:{
+      en:"Reciprocal means flip numerator and denominator → 5/3.",
+      ru:"Обратное число получают, меняя местами числитель и знаменатель → 5/3."
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify: (−2)³",
+    options:["−6","−8","8","6"],
+    answer:1,
+    explain:{
+      en:"(−2)³ = (−2)×(−2)×(−2)=−8.",
+      ru:"(−2)³ = (−2)×(−2)×(−2)=−8."
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify: 4² + 3²",
+    options:["7","12","25","16"],
+    answer:2,
+    explain:{
+      en:"4²+3²=16+9=25.",
+      ru:"4²+3²=16+9=25."
+    },
+    points:1
+  },
+  {
+    prompt:"Which operation should be done first: 6 + 3 × 2?",
+    options:["Add 6+3 first","Multiply 3×2 first","Add and multiply together","None"],
+    answer:1,
+    explain:{
+      en:"Order of operations: multiplication before addition.",
+      ru:"Порядок действий: сначала умножение, потом сложение."
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify: (10 − 4) ÷ 2",
+    options:["3","5","6","8"],
+    answer:1,
+    explain:{
+      en:"(10−4)=6; 6÷2=3.",
+      ru:"(10−4)=6; 6÷2=3."  // correct result: 3
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify: 3² × 2³",
+    options:["36","64","72","24"],
+    answer:3,
+    explain:{
+      en:"3²=9; 2³=8; 9×8=72.",
+      ru:"3²=9; 2³=8; 9×8=72."
+    },
+    points:1
+  },
+  {
+    prompt:"Which of the following is NOT a whole number?",
+    options:["0","−4","5","12"],
+    answer:1,
+    explain:{
+      en:"Whole numbers are nonnegative integers (0,1,2,…). −4 is negative.",
+      ru:"Целые положительные числа и 0 — целые; −4 отрицательное, не подходит."
+    },
+    points:1
+  },
+  {
+    prompt:"Which of the following is a prime number?",
+    options:["9","12","17","21"],
+    answer:2,
+    explain:{
+      en:"17 has only two factors: 1 and itself.",
+      ru:"17 делится только на 1 и само себя."
+    },
+    points:1
+  },
+  {
+    prompt:"Find the GCF (greatest common factor) of 12 and 18.",
+    options:["3","6","12","9"],
+    answer:1,
+    explain:{
+      en:"12=2×2×3; 18=2×3×3; GCF=2×3=6.",
+      ru:"12=2×2×3; 18=2×3×3; НОД=6."
+    },
+    points:1
+  },
+  {
+    prompt:"Find the LCM of 4 and 6.",
+    options:["8","10","12","24"],
+    answer:2,
+    explain:{
+      en:"Multiples: 4→8,12,… 6→12,… LCM=12.",
+      ru:"Наименьшее общее кратное 4 и 6 — 12."
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify the fraction 12/16.",
+    options:["3/4","4/3","6/8","8/12"],
+    answer:0,
+    explain:{
+      en:"Divide numerator and denominator by 4 → 3/4.",
+      ru:"Делим числитель и знаменатель на 4 → 3/4."
+    },
+    points:1
+  },
+  {
+    prompt:"Convert 0.25 to a fraction.",
+    options:["1/2","1/4","2/5","3/4"],
+    answer:1,
+    explain:{
+      en:"0.25 = 25/100 = 1/4.",
+      ru:"0.25 = 25/100 = 1/4."
+    },
+    points:1
+  },
+  {
+    prompt:"Find 20% of 150.",
+    options:["20","25","30","35"],
+    answer:2,
+    explain:{
+      en:"20% = 0.2; 0.2×150=30.",
+      ru:"20% = 0.2; 0.2×150=30."
+    },
+    points:1
+  },
+  {
+    prompt:"If a shirt costs $40 and is on sale for 25% off, the sale price is:",
+    options:["$10","$25","$30","$35"],
+    answer:2,
+    explain:{
+      en:"25% off means 75% of price → 0.75×40=30.",
+      ru:"Скидка 25% означает 75% цены → 0.75×40=30."
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify: 4/5 ÷ 2/3",
+    options:["8/15","6/10","5/8","3/4"],
+    answer:0,
+    explain:{
+      en:"Divide by a fraction = multiply by reciprocal: 4/5 × 3/2 = 12/10 = 6/5 = 1.2.",
+      ru:"Деление на дробь = умножение на обратную: 4/5 × 3/2 = 6/5."
+    },
+    points:1
+  },
+  {
+    prompt:"Solve: 3x = 12",
+    options:["2","3","4","5"],
+    answer:2,
+    explain:{
+      en:"Divide both sides by 3 → x=4.",
+      ru:"Разделим обе стороны на 3 → x=4."
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify: (2x + 3x)",
+    options:["2x","3x","5x","6x"],
+    answer:2,
+    explain:{
+      en:"Add like terms: 2x+3x=5x.",
+      ru:"Складываем подобные: 2x+3x=5x."
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify: 5(x + 2)",
+    options:["5x + 2","x + 10","5x + 10","10x + 5"],
+    answer:2,
+    explain:{
+      en:"Distribute 5: 5×x + 5×2 = 5x+10.",
+      ru:"Раскрываем скобки: 5×x + 5×2 = 5x+10."
+    },
+    points:1
+  },
+  {
+    prompt:"Find the area of a rectangle with length 8 cm and width 3 cm.",
+    options:["11 cm²","24 cm²","20 cm²","30 cm²"],
+    answer:1,
+    explain:{
+      en:"Area = length×width = 8×3=24.",
+      ru:"Площадь = длина×ширина = 8×3=24."
+    },
+    points:1
+  },
+  {
+    prompt:"Find the perimeter of a square with side 5 cm.",
+    options:["10 cm","15 cm","20 cm","25 cm"],
+    answer:2,
+    explain:{
+      en:"Perimeter = 4×side = 4×5=20.",
+      ru:"Периметр = 4×сторона = 4×5=20."
+    },
+    points:1
+  },
+  {
+    prompt:"Find the area of a triangle with base 10 cm and height 6 cm.",
+    options:["60 cm²","30 cm²","40 cm²","16 cm²"],
+    answer:1,
+    explain:{
+      en:"Area = ½×base×height = ½×10×6=30.",
+      ru:"Площадь = ½×основание×высота = ½×10×6=30."
+    },
+    points:1
+  },
+  {
+    prompt:"What is the volume of a cube with side 4 cm?",
+    options:["12 cm³","16 cm³","32 cm³","64 cm³"],
+    answer:3,
+    explain:{
+      en:"Volume = side³ = 4³=64.",
+      ru:"Объём куба = сторона³ = 4³=64."
+    },
+    points:1
+  },
+  {
+    prompt:"Convert 3/4 to percent.",
+    options:["25%","50%","75%","100%"],
+    answer:2,
+    explain:{
+      en:"3/4 = 0.75 = 75%.",
+      ru:"3/4 = 0.75 = 75%."
+    },
+    points:1
+  },
+  {
+    prompt:"Solve: x/4 = 5",
+    options:["x=1","x=9","x=10","x=20"],
+    answer:3,
+    explain:{
+      en:"Multiply both sides by 4 → x=20.",
+      ru:"Умножаем обе стороны на 4 → x=20."
+    },
+    points:1
+  },
+  {
+    prompt:"Simplify: 2(3 + 4)² ÷ 7",
+    options:["2","14","10","12"],
+    answer:1,
+    explain:{
+      en:"(3+4)=7; 7²=49; 2×49÷7=14.",
+      ru:"(3+4)=7; 7²=49; 2×49÷7=14."
+    },
+    points:1
+  },
+  {
+    prompt:"If angle A = 70°, find its complement.",
+    options:["20°","30°","110°","90°"],
+    answer:0,
+    explain:{
+      en:"Complementary angles sum to 90° → 90−70=20°.",
+      ru:"Дополнительные углы в сумме 90° → 90−70=20°."
+    },
+    points:1
+  },
+  {
+    prompt:"If angle B = 110°, find its supplement.",
+    options:["20°","70°","90°","60°"],
+    answer:1,
+    explain:{
+      en:"Supplementary angles sum to 180° → 180−110=70°.",
+      ru:"Смежные углы в сумме 180° → 180−110=70°."
+    },
+    points:1
+  }
+  ],
+
+  German: [
+  {
+    prompt:"Wähle die richtige Antwort: Elena mag lila und rosa. Aber rot gefällt ________ nicht.",
+    options:["ihm","ihr","ihnen"],
+    answer:1,
+    explain:{
+      en:"'Rot gefällt ihr nicht' — because Elena is feminine, use 'ihr'.",
+      ru:"'Rot gefällt ihr nicht' — Елене не нравится красный цвет; используем 'ihr'."
+    },
+    points:1
+  },
+  {
+    prompt:"Frau Weber, gefällt ________ das Kleid?",
+    options:["ihr","ihnen","Ihnen"],
+    answer:2,
+    explain:{
+      en:"Formal address 'Frau Weber' → 'Ihnen'.",
+      ru:"Вежливое обращение 'Фрау Вебер' требует местоимение 'Ihnen'."
+    },
+    points:1
+  },
+  {
+    prompt:"Peter und Petra sind sportlich. Schwimmen gefällt ________.",
+    options:["ihm","ihr","ihnen"],
+    answer:2,
+    explain:{
+      en:"Plural 'Peter und Petra' → use 'ihnen'.",
+      ru:"Множественное число 'Peter und Petra' → 'ihnen'."
+    },
+    points:1
+  },
+  {
+    prompt:"Was ________ du machen?",
+    options:["will","willst","wollen"],
+    answer:1,
+    explain:{
+      en:"2nd person singular → 'du willst'.",
+      ru:"Для 'du' используем 'willst'."
+    },
+    points:1
+  },
+  {
+    prompt:"Ich fahre mit ________ Auto.",
+    options:["ein","eine","einem"],
+    answer:2,
+    explain:{
+      en:"Preposition 'mit' requires Dativ → 'mit einem Auto'.",
+      ru:"После 'mit' используется дательный падеж → 'mit einem Auto'."
+    },
+    points:1
+  },
+  {
+    prompt:"Der Pulli ist ________.",
+    options:["grün","grüne","grünen"],
+    answer:0,
+    explain:{
+      en:"After 'ist' we use base adjective form — 'Der Pulli ist grün'.",
+      ru:"После 'sein' используется простая форма прилагательного — 'grün'."
+    },
+    points:1
+  },
+  {
+    prompt:"Wie findet Jolia den Mantel? – Der Mantel gefällt ________.",
+    options:["ihm","ihr","ihnen"],
+    answer:1,
+    explain:{
+      en:"'Jolia' is feminine → 'ihr'.",
+      ru:"'Йолия' — женский род, значит 'ihr'."
+    },
+    points:1
+  },
+  {
+    prompt:"Ich will Musik ________.",
+    options:["hӧre","hӧren","gehӧrt"],
+    answer:1,
+    explain:{
+      en:"After modal verb 'will' infinitive at the end → 'hören'.",
+      ru:"После модального глагола 'will' ставим инфинитив в конец: 'hören'."
+    },
+    points:1
+  },
+  {
+    prompt:"Man kann in Shorts nicht zu ________ Konzert gehen.",
+    options:["ein","einem"],
+    answer:1,
+    explain:{
+      en:"'zu' requires dative → 'zu einem Konzert'.",
+      ru:"После 'zu' дательный → 'zu einem Konzert'."
+    },
+    points:1
+  },
+  {
+    prompt:"Ich freue ________.",
+    options:["mich","dich","sich"],
+    answer:0,
+    explain:{
+      en:"'Ich freue mich' — reflexive verb uses 'mich'.",
+      ru:"'Ich freue mich' — возвратное местоимение 'mich' для 1 лица."
+    },
+    points:1
+  },
+  {
+    prompt:"Du erinnerst ________.",
+    options:["mich","dich","uns"],
+    answer:1,
+    explain:{
+      en:"'Du erinnerst dich' — correct reflexive pronoun for 'du'.",
+      ru:"'Du erinnerst dich' — правильное возвратное местоимение."
+    },
+    points:1
+  },
+  {
+    prompt:"Wir streiten ________.",
+    options:["sich","uns","euch"],
+    answer:1,
+    explain:{
+      en:"'Wir streiten uns' — plural reflexive pronoun 'uns'.",
+      ru:"'Wir streiten uns' — возвратное местоимение для 'wir'."
+    },
+    points:1
+  },
+  {
+    prompt:"Ihr ärgert ________.",
+    options:["sich","euch","mich"],
+    answer:1,
+    explain:{
+      en:"'Ihr ärgert euch' — reflexive pronoun 'euch' for 'ihr'.",
+      ru:"'Ihr ärgert euch' — местоимение 'euch' для 'ihr'."
+    },
+    points:1
+  },
+  {
+    prompt:"Ich finde die ________ Jacke hässlich.",
+    options:["Schwarz","schwarze","schwarzen"],
+    answer:1,
+    explain:{
+      en:"'die Jacke' (Akkusativ, feminin) → 'schwarze'.",
+      ru:"В винительном женском — окончание -e: 'schwarze'."
+    },
+    points:1
+  },
+  {
+    prompt:"Ich finde den ________ Hut fantastisch.",
+    options:["weiß","weiße","weißen"],
+    answer:2,
+    explain:{
+      en:"'den Hut' (maskulin Akkusativ) → 'weißen'.",
+      ru:"Винительный мужской род: 'weißen'."
+    },
+    points:1
+  },
+  {
+    prompt:"Er findet das ________ Hemd schick.",
+    options:["gelb","gelbe","gelben"],
+    answer:0,
+    explain:{
+      en:"'das Hemd' → neuter nominative, adjective stays 'gelb'.",
+      ru:"'das Hemd' — средний род, прилагательное без окончания."
+    },
+    points:1
+  },
+  {
+    prompt:"Ergänze: Elsa ist sauer, weil ________.",
+    options:[
+      "sie darf nicht in die Disco gehen",
+      "sie darf in die Disco gehen",
+      "sie will tanzen"
+    ],
+    answer:0,
+    explain:{
+      en:"Reason clause with 'weil' — verb at the end: 'weil sie nicht in die Disco gehen darf'.",
+      ru:"Придаточное с 'weil': глагол в конце → 'weil sie nicht in die Disco gehen darf'."
+    },
+    points:1
+  },
+  {
+    prompt:"Verbinde das Gegenteil: 'langweilig' = ?",
+    options:["spannend","hässlich","deprimiert"],
+    answer:0,
+    explain:{
+      en:"Opposite of 'langweilig' (boring) is 'spannend' (exciting).",
+      ru:"Противоположное 'langweilig' — 'spannend'."
+    },
+    points:1
+  },
+  {
+    prompt:"Ordne den Dialog: '?Kommst du mit ins Kino?' — Antwort:",
+    options:[
+      "Nein, ich möchte heute nicht ins Kino gehen.",
+      "Ja, ich habe keine Zeit.",
+      "Ich will Hausaufgaben machen."
+    ],
+    answer:0,
+    explain:{
+      en:"Natural dialogue pair: question about cinema → polite refusal.",
+      ru:"Правильный ответ к вопросу 'Kommst du mit ins Kino?' — 'Nein, ich möchte heute nicht…'."
+    },
+    points:1
+  },
+  {
+    prompt:"Ergänze: Ich fühle mich immer schlecht, wenn ________.",
+    options:[
+      "ich und mein Bruder streiten uns",
+      "ich gehe ins Kino",
+      "ich bekomme gute Noten"
+    ],
+    answer:0,
+    explain:{
+      en:"'Ich fühle mich schlecht, wenn ich und mein Bruder streiten uns.'",
+      ru:"'Я чувствую себя плохо, когда мы с братом ссоримся.'"
+    },
+    points:1
+  }
+],
+};
+
+/* ================= State & helpers ================= */
+const subjects = Object.keys(QBANK);
+let activeSubject = subjects[0];
+function t(key,...args){ const s=I18N[LANG]; const v=s[key]; return typeof v==="function"?v(...args):v; }
+
+/* ================= Render ================= */
+function renderTabs(){
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = subjects.map(s=>{
+    const label = I18N[LANG].subjects[s] || s;
+    return `<button class="tab ${s===activeSubject?'active':''}" data-s="${s}">${label}</button>`;
+  }).join("");
+  tabs.querySelectorAll(".tab").forEach(btn=>{
+    btn.onclick = ()=>{ activeSubject = btn.dataset.s; renderAll(); }
+  });
+}
+function renderUIStrings(){
+  document.getElementById("checkBtn").textContent = t("check");
+  document.getElementById("resetBtn").textContent = t("reset");
+  document.getElementById("shuffleBtn").textContent = t("shuffle");
+  document.getElementById("footNote").textContent = t("hint");
+  document.getElementById("langLabel").textContent = t("langLabel");
+}
+function renderQuestions(){
+  const list = QBANK[activeSubject];
+  const quiz = document.getElementById("quiz");
+  document.getElementById("subjectTitle").textContent = t("title", I18N[LANG].subjects[activeSubject] || activeSubject);
+  quiz.innerHTML = "";
+  list.forEach((q, idx)=>{
+    const opts = q.options.map((txt,i)=>`
+      <label>
+        <input type="radio" name="q${idx}" value="${i}">
+        <div>${txt}</div>
+      </label>`).join("");
+    const div = document.createElement("div");
+    div.className = "q"; div.dataset.index = idx;
+    div.innerHTML = `
+      <h3>${t("qnum", idx+1)} — ${q.prompt}</h3>
+      <div class="choices">${opts}</div>
+      <div class="explain" id="exp${idx}">${q.explain[LANG]}</div>
+    `;
+    quiz.appendChild(div);
+  });
+}
+function evaluate(){
+  const list = QBANK[activeSubject];
+  let correct = 0, total = list.length;
+  list.forEach((q, idx)=>{
+    const radios = document.querySelectorAll(`input[name="q${idx}"]`);
+    let picked = -1; radios.forEach(r=>{ if(r.checked) picked = +r.value; });
+    const box = document.querySelector(`.q[data-index="${idx}"]`);
+    const exp = document.getElementById(`exp${idx}`); exp.style.display = "block";
+    if(picked === q.answer){ correct++; box.classList.add("ok"); box.classList.remove("bad"); }
+    else { box.classList.add("bad"); box.classList.remove("ok"); }
+  });
+  const percent = Math.round((correct/total)*100);
+  const score10 = Math.round((correct/total)*10*10)/10;
+  document.getElementById("result").textContent = t("result", correct, total, percent, score10);
+}
+function resetQuiz(){
+  document.querySelectorAll("input[type=radio]").forEach(i=>i.checked=false);
+  document.querySelectorAll(".q").forEach(b=>b.classList.remove("ok","bad"));
+  document.querySelectorAll(".explain").forEach(e=>e.style.display="none");
+  document.getElementById("result").textContent = "";
+}
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+function shuffleCurrent(){
+  QBANK[activeSubject] = shuffle(QBANK[activeSubject]);
+  QBANK[activeSubject].forEach(q=>{ q.options = shuffle(q.options); });
+  renderQuestions(); resetQuiz();
+}
+function renderAll(){ renderTabs(); renderUIStrings(); renderQuestions(); resetQuiz(); }
+
+/* ================= Events ================= */
+document.getElementById("checkBtn").onclick = evaluate;
+document.getElementById("resetBtn").onclick = resetQuiz;
+document.getElementById("shuffleBtn").onclick = shuffleCurrent;
+document.getElementById("langSel").onchange = e=>{ LANG = e.target.value; renderAll(); };
+
+/* ================= Init ================= */
+renderAll();
+</script>
+</body>
+</html>
