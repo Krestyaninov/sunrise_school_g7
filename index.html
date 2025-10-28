@@ -2061,9 +2061,23 @@ function resetQuiz(){
 }
 function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
 function shuffleCurrent(){
+  // 1) Перемешиваем порядок вопросов внутри активного предмета
   QBANK[activeSubject] = shuffle(QBANK[activeSubject]);
-  QBANK[activeSubject].forEach(q=>{ q.options = shuffle(q.options); });
-  renderQuestions(); resetQuiz();
+
+  // 2) Для каждого вопроса перемешиваем варианты, но корректно пересчитываем индекс правильного ответа
+  QBANK[activeSubject].forEach(q=>{
+    // Сцепляем текст варианта с его исходным индексом
+    const paired = q.options.map((txt, i)=>({ txt, i }));
+    // Перемешиваем пары
+    shuffle(paired);
+    // Обновляем массив вариантов
+    q.options = paired.map(p=>p.txt);
+    // Находим новый индекс того варианта, который был правильным до перемешивания
+    q.answer = paired.findIndex(p => p.i === q.answer);
+  });
+
+  renderQuestions();
+  resetQuiz();
 }
 function renderAll(){ renderTabs(); renderUIStrings(); renderQuestions(); resetQuiz(); }
 
