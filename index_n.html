@@ -28,7 +28,15 @@
   .score{background:#fff;border:1px dashed #d1d5db;border-radius:12px;padding:14px}
   .muted{color:#6b7280;font-size:13px}
 </style>
-<script src="questions.js"></script>
+
+<!-- Question Bank Files - Add new subjects here -->
+<script src="questions_geography.js"></script>
+<script src="questions_english.js"></script>
+<script src="questions_math.js"></script>
+<script src="questions_german.js"></script>
+<script src="questions_science.js"></script>
+<script src="questions_loader.js"></script>
+
 </head>
 <body>
 <div class="wrap">
@@ -82,7 +90,7 @@ let LANG = "en"; // default to English UI
    PROMPTS/OPTIONS: always EN (as in originals).
    EXPLANATIONS: RU/EN switch with UI language.
 */
-
+// QBANK is loaded from external files
 
 /* ================= State & helpers ================= */
 const subjects = Object.keys(QBANK);
