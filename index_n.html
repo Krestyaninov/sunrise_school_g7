@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sunrise School HRG G7/Quarter Trainer – RU/EN UI + Explanations</title>
+<style>
+  :root{--b:#e5e7eb;--bg:#f7f8fa;--fg:#111}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;margin:0;background:var(--bg);color:var(--fg)}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{padding:8px 12px;border:1px solid var(--b);border-radius:999px;background:#fff;cursor:pointer}
+  .tab.active{background:#111;color:#fff;border-color:#111}
+  .lang{display:flex;gap:6px;align-items:center}
+  select{padding:6px 10px;border:1px solid var(--b);border-radius:8px;background:#fff}
+  .card{background:#fff;border:1px solid var(--b);border-radius:12px;padding:16px;margin:12px 0}
+  .q{border:1px solid var(--b);border-radius:12px;padding:14px;margin:12px 0;background:#fff}
+  .choices{display:grid;gap:8px}
+  .choices label{display:flex;gap:10px;align-items:flex-start;background:#f9fafb;border:1px solid var(--b);border-radius:10px;padding:10px;cursor:pointer}
+  .ok{background:#ecfdf5;border-color:#a7f3d0}
+  .bad{background:#fef2f2;border-color:#fecaca}
+  .explain{margin-top:8px;font-size:13px;color:#374151;display:none}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+  button{border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+  .primary{background:#111;color:#fff}
+  .ghost{background:#fff;border:1px solid var(--b)}
+  .score{background:#fff;border:1px dashed #d1d5db;border-radius:12px;padding:14px}
+  .muted{color:#6b7280;font-size:13px}
+</style>
+<script src="questions.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="tabs" id="tabs"></div>
+    <div class="lang">
+      <label for="langSel" id="langLabel">Language</label>
+      <select id="langSel">
+        <option value="en" selected>English (≤B1)</option>
+        <option value="ru">Русский</option>
+      </select>
+    </div>
+  </header>
+
+  <div id="subjectTitle" class="card" style="font-weight:700"></div>
+  <form id="quiz"></form>
+
+  <div class="btns">
+    <button type="button" class="primary" id="checkBtn">Check answers</button>
+    <button type="button" class="ghost" id="resetBtn">Reset</button>
+    <button type="button" class="ghost" id="shuffleBtn">Shuffle</button>
+  </div>
+
+  <div id="result" class="score"></div>
+  <p class="muted" id="footNote"></p>
+</div>
+
+<script>
+/* ================= Localization (UI only + explanations) ================= */
+const I18N = {
+  en: {
+    subjects:{ Geography:"Geography", Science:"Science", English:"English", Math:"Math", German:"German" },
+    check:"Check answers", reset:"Reset", shuffle:"Shuffle",
+    qnum:n=>`Question ${n}`, title:s=>`Training: ${s}`,
+    result:(c,t,p,score)=>`Result: ${c} of ${t} • ${p}% correct • Score (0–10): ${score}`,
+    hint:"After checking, a short explanation appears under each question.",
+    langLabel:"Language"
+  },
+  ru: {
+    subjects:{ Geography:"География", Science:"Наука", English:"Английский", Math:"Математика", German:"Немецкий" },
+    check:"Проверить ответы", reset:"Сбросить", shuffle:"Перемешать",
+    qnum:n=>`Вопрос ${n}`, title:s=>`Тренируем: ${s}`,
+    result:(c,t,p,score)=>`Итог: ${c} из ${t} • ${p}% правильных • Оценка (0–10): ${score}`,
+    hint:"После проверки под каждым вопросом показывается краткое объяснение на выбранном языке.",
+    langLabel:"Язык / Language"
+  }
+};
+let LANG = "en"; // default to English UI
+
+/* ================= Question bank =================
+   PROMPTS/OPTIONS: always EN (as in originals).
+   EXPLANATIONS: RU/EN switch with UI language.
+*/
+
+
+/* ================= State & helpers ================= */
+const subjects = Object.keys(QBANK);
+let activeSubject = subjects[0];
+function t(key,...args){ const s=I18N[LANG]; const v=s[key]; return typeof v==="function"?v(...args):v; }
+
+/* ================= Render ================= */
+function renderTabs(){
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = subjects.map(s=>{
+    const label = I18N[LANG].subjects[s] || s;
+    return `<button class="tab ${s===activeSubject?'active':''}" data-s="${s}">${label}</button>`;
+  }).join("");
+  tabs.querySelectorAll(".tab").forEach(btn=>{
+    btn.onclick = ()=>{ activeSubject = btn.dataset.s; renderAll(); }
+  });
+}
+function renderUIStrings(){
+  document.getElementById("checkBtn").textContent = t("check");
+  document.getElementById("resetBtn").textContent = t("reset");
+  document.getElementById("shuffleBtn").textContent = t("shuffle");
+  document.getElementById("footNote").textContent = t("hint");
+  document.getElementById("langLabel").textContent = t("langLabel");
+}
+function renderQuestions(){
+  const list = QBANK[activeSubject];
+  const quiz = document.getElementById("quiz");
+  document.getElementById("subjectTitle").textContent = t("title", I18N[LANG].subjects[activeSubject] || activeSubject);
+  quiz.innerHTML = "";
+  list.forEach((q, idx)=>{
+    const opts = q.options.map((txt,i)=>`
+      <label>
+        <input type="radio" name="q${idx}" value="${i}">
+        <div>${txt}</div>
+      </label>`).join("");
+    const div = document.createElement("div");
+    div.className = "q"; div.dataset.index = idx;
+    div.innerHTML = `
+      <h3>${t("qnum", idx+1)} — ${q.prompt}</h3>
+      <div class="choices">${opts}</div>
+      <div class="explain" id="exp${idx}">${q.explain[LANG]}</div>
+    `;
+    quiz.appendChild(div);
+  });
+}
+function evaluate(){
+  const list = QBANK[activeSubject];
+  let correct = 0, total = list.length;
+  list.forEach((q, idx)=>{
+    const radios = document.querySelectorAll(`input[name="q${idx}"]`);
+    let picked = -1; radios.forEach(r=>{ if(r.checked) picked = +r.value; });
+    const box = document.querySelector(`.q[data-index="${idx}"]`);
+    const exp = document.getElementById(`exp${idx}`); exp.style.display = "block";
+    if(picked === q.answer){ correct++; box.classList.add("ok"); box.classList.remove("bad"); }
+    else { box.classList.add("bad"); box.classList.remove("ok"); }
+  });
+  const percent = Math.round((correct/total)*100);
+  const score10 = Math.round((correct/total)*10*10)/10;
+  document.getElementById("result").textContent = t("result", correct, total, percent, score10);
+}
+function resetQuiz(){
+  document.querySelectorAll("input[type=radio]").forEach(i=>i.checked=false);
+  document.querySelectorAll(".q").forEach(b=>b.classList.remove("ok","bad"));
+  document.querySelectorAll(".explain").forEach(e=>e.style.display="none");
+  document.getElementById("result").textContent = "";
+}
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+function shuffleCurrent(){
+  // 1) Перемешиваем порядок вопросов внутри активного предмета
+  QBANK[activeSubject] = shuffle(QBANK[activeSubject]);
+
+  // 2) Для каждого вопроса перемешиваем варианты, но корректно пересчитываем индекс правильного ответа
+  QBANK[activeSubject].forEach(q=>{
+    // Сцепляем текст варианта с его исходным индексом
+    const paired = q.options.map((txt, i)=>({ txt, i }));
+    // Перемешиваем пары
+    shuffle(paired);
+    // Обновляем массив вариантов
+    q.options = paired.map(p=>p.txt);
+    // Находим новый индекс того варианта, который был правильным до перемешивания
+    q.answer = paired.findIndex(p => p.i === q.answer);
+  });
+
+  renderQuestions();
+  resetQuiz();
+}
+function renderAll(){ renderTabs(); renderUIStrings(); renderQuestions(); resetQuiz(); }
+
+/* ================= Events ================= */
+document.getElementById("checkBtn").onclick = evaluate;
+document.getElementById("resetBtn").onclick = resetQuiz;
+document.getElementById("shuffleBtn").onclick = shuffleCurrent;
+document.getElementById("langSel").onchange = e=>{ LANG = e.target.value; renderAll(); };
+
+/* ================= Init ================= */
+renderAll();
+</script>
+</body>
+</html>
