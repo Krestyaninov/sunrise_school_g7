@@ -28,15 +28,6 @@
   .score{background:#fff;border:1px dashed #d1d5db;border-radius:12px;padding:14px}
   .muted{color:#6b7280;font-size:13px}
 </style>
-
-<!-- Question Bank Files - Add new subjects here -->
-<script src="questions_geography.js"></script>
-<script src="questions_english.js"></script>
-<script src="questions_math.js"></script>
-<script src="questions_german.js"></script>
-<script src="questions_science.js"></script>
-<script src="questions_loader.js"></script>
-
 </head>
 <body>
 <div class="wrap">
@@ -64,11 +55,12 @@
   <p class="muted" id="footNote"></p>
 </div>
 
+<script src="questions.js"></script>
 <script>
 /* ================= Localization (UI only + explanations) ================= */
 const I18N = {
   en: {
-    subjects:{ Geography:"Geography", Science:"Science", English:"English", Math:"Math", German:"German" },
+    subjects:{ Geography:"Social Science", Science:"Science", English:"English", Math:"Math", German:"German" },
     check:"Check answers", reset:"Reset", shuffle:"Shuffle",
     qnum:n=>`Question ${n}`, title:s=>`Training: ${s}`,
     result:(c,t,p,score)=>`Result: ${c} of ${t} • ${p}% correct • Score (0–10): ${score}`,
@@ -76,7 +68,7 @@ const I18N = {
     langLabel:"Language"
   },
   ru: {
-    subjects:{ Geography:"География", Science:"Наука", English:"Английский", Math:"Математика", German:"Немецкий" },
+    subjects:{ Geography:"Социальные науки", Science:"Точные науки", English:"Английский", Math:"Математика", German:"Немецкий" },
     check:"Проверить ответы", reset:"Сбросить", shuffle:"Перемешать",
     qnum:n=>`Вопрос ${n}`, title:s=>`Тренируем: ${s}`,
     result:(c,t,p,score)=>`Итог: ${c} из ${t} • ${p}% правильных • Оценка (0–10): ${score}`,
@@ -90,7 +82,7 @@ let LANG = "en"; // default to English UI
    PROMPTS/OPTIONS: always EN (as in originals).
    EXPLANATIONS: RU/EN switch with UI language.
 */
-// QBANK is loaded from external files
+// QBANK загружается из внешнего файла questions.js
 
 /* ================= State & helpers ================= */
 const subjects = Object.keys(QBANK);
