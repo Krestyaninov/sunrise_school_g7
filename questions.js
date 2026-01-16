@@ -2242,8 +2242,418 @@ const QBANK = {
   // 🔬 SCIENCE
   // ═════════════════════════════════════════════════════════════════
   Science: [
-    // Добавьте вопросы по Science здесь
-  ]
+    {
+      prompt: "What molecules form much of the cell membrane?",
+      options: ["nucleic acids", "amino acids", "ATP molecules", "phospholipids"],
+      answer: 3,
+      explain: {
+        en: "Phospholipids form much of the cell membrane.",
+        ru: "Фосфолипиды составляют большую часть клеточной мембраны."
+      },
+      points: 1
+    },
+    {
+      prompt: "Which of the following reproduce through asexual reproduction?",
+      options: ["humans", "hydra", "fish", "birds"],
+      answer: 1,
+      explain: {
+        en: "Hydra reproduce through asexual reproduction.",
+        ru: "Гидра размножается бесполым путем."
+      },
+      points: 1
+    },
+    {
+      prompt: "What do gravity, sounds, and light have in common?",
+      options: ["They are necessary for survival.", "They are characteristics of life.", "They are experiences all organisms share.", "They are examples of stimuli."],
+      answer: 3,
+      explain: {
+        en: "Gravity, sounds, and light are examples of stimuli.",
+        ru: "Гравитация, звуки и свет являются примерами раздражителей (стимулов)."
+      },
+      points: 1
+    },
+    {
+      prompt: "Maintaining stable internal conditions is called",
+      options: ["shivering.", "sweating.", "homeostasis.", "heredity."],
+      answer: 2,
+      explain: {
+        en: "Maintaining stable internal conditions is called homeostasis.",
+        ru: "Поддержание стабильных внутренних условий называется гомеостазом."
+      },
+      points: 1
+    },
+    {
+      prompt: "Approximately how much of the human body is water?",
+      options: ["10%", "33 1/3%", "50%", "70%"],
+      answer: 3,
+      explain: {
+        en: "Approximately 70% of the human body is water.",
+        ru: "Примерно 70% человеческого тела состоит из воды."
+      },
+      points: 1
+    },
+    {
+      prompt: "What happens when organisms reproduce?",
+      options: ["They grow and develop.", "They sense change in their environment.", "They maintain a stable internal environment.", "They make organisms similar to themselves."],
+      answer: 3,
+      explain: {
+        en: "When organisms reproduce, they make organisms similar to themselves.",
+        ru: "Когда организмы размножаются, они создают организмы, похожие на себя."
+      },
+      points: 1
+    },
+    {
+      prompt: "What do most of the chemical reactions involved in metabolism require?",
+      options: ["water", "carbohydrates", "phospholipids", "carbon dioxide"],
+      answer: 0,
+      explain: {
+        en: "Most metabolic reactions require water.",
+        ru: "Большинство метаболических реакций требуют воды."
+      },
+      points: 1
+    },
+    {
+      prompt: "What is a complex carbohydrate manufactured by plants?",
+      options: ["starch", "oil", "protein", "hemoglobin"],
+      answer: 0,
+      explain: {
+        en: "Starch is a complex carbohydrate manufactured by plants.",
+        ru: "Крахмал — это сложный углевод, вырабатываемый растениями."
+      },
+      points: 1
+    },
+    {
+      prompt: "The molecule that provides energy for cellular processes is",
+      options: ["ATP.", "RNA.", "DNA.", "protein."],
+      answer: 0,
+      explain: {
+        en: "ATP is the molecule that provides energy for cellular processes.",
+        ru: "АТФ — это молекула, обеспечивающая энергию для клеточных процессов."
+      },
+      points: 1
+    },
+    {
+      prompt: "The subunits of proteins are",
+      options: ["sugar molecules.", "amino acids.", "enzymes.", "nucleotides."],
+      answer: 1,
+      explain: {
+        en: "The subunits of proteins are amino acids.",
+        ru: "Субъединицами белков являются аминокислоты."
+      },
+      points: 1
+    },
+    {
+      prompt: "Which of the following are NOT used by cells for energy storage?",
+      options: ["fats", "oils", "carbohydrates", "nucleic acids"],
+      answer: 3,
+      explain: {
+        en: "Nucleic acids are not used for energy storage.",
+        ru: "Нуклеиновые кислоты не используются клетками для хранения энергии."
+      },
+      points: 1
+    },
+    {
+      prompt: "What are food, water, air, and a place to live?",
+      options: ["characteristics of living things", "basic needs of most living things", "examples of living things", "stimuli"],
+      answer: 1,
+      explain: {
+        en: "These are the basic needs of most living things.",
+        ru: "Это основные потребности большинства живых существ."
+      },
+      points: 1
+    },
+    {
+      prompt: "What are hunger, sounds, and light?",
+      options: ["examples of stimuli", "characteristics of life", "necessities of life", "experiences all living things share"],
+      answer: 0,
+      explain: {
+        en: "Hunger, sounds, and light are examples of stimuli.",
+        ru: "Голод, звуки и свет — это примеры раздражителей."
+      },
+      points: 1
+    },
+    {
+      prompt: "What is one thing all living things do?",
+      options: ["They grow and develop.", "They stay the same.", "They shrink as they get older.", "They go through five stages."],
+      answer: 0,
+      explain: {
+        en: "All living things grow and develop.",
+        ru: "Все живые существа растут и развиваются."
+      },
+      points: 1
+    },
+    {
+      prompt: "What is one characteristic that all living things share?",
+      options: ["Their cells have DNA.", "They can smell and taste.", "They can move.", "They have two or more cells."],
+      answer: 0,
+      explain: {
+        en: "One characteristic all living things share is that their cells have DNA.",
+        ru: "Одной из характеристик, общих для всех живых существ, является наличие ДНК в их клетках."
+      },
+      points: 1
+    },
+    {
+      prompt: "How do people warm up their bodies when they are cold?",
+      options: ["sweat", "shiver", "move to a shady area", "stay still"],
+      answer: 1,
+      explain: {
+        en: "People shiver to warm up their bodies.",
+        ru: "Люди дрожат, чтобы согреться."
+      },
+      points: 1
+    },
+    {
+      prompt: "One benefit of being a large organism is that you have",
+      options: ["larger cells.", "fewer predators.", "simpler functions.", "only one kind of cell."],
+      answer: 1,
+      explain: {
+        en: "One benefit of being large is having fewer predators.",
+        ru: "Одним из преимуществ быть крупным организмом является меньшее количество хищников."
+      },
+      points: 1
+    },
+    {
+      prompt: "The life span of a multicellular organism is",
+      options: ["only as long as the life of one cell.", "shorter than that of a single-celled organism.", "not limited to the life of a single cell.", "the same in every cell."],
+      answer: 2,
+      explain: {
+        en: "The life span is not limited to the life of a single cell.",
+        ru: "Продолжительность жизни не ограничивается жизнью одной клетки."
+      },
+      points: 1
+    },
+    {
+      prompt: "An organ consists of",
+      options: ["two or more tissues.", "a group of cells.", "two or more systems.", "nerves and muscles."],
+      answer: 0,
+      explain: {
+        en: "An organ consists of two or more tissues working together.",
+        ru: "Орган состоит из двух или более тканей, работающих вместе."
+      },
+      points: 1
+    },
+    {
+      prompt: "The highest level of organization is the",
+      options: ["cell.", "tissue.", "organ.", "system."],
+      answer: 3,
+      explain: {
+        en: "The highest level of organization is the system (organ system).",
+        ru: "Высшим уровнем организации является система (система органов)."
+      },
+      points: 1
+    },
+    {
+      prompt: "The functions of an organism’s parts are related to those parts’",
+      options: ["structures.", "systems.", "blood cells.", "alveoli."],
+      answer: 0,
+      explain: {
+        en: "Functions are related to structures.",
+        ru: "Функции связаны со структурами."
+      },
+      points: 1
+    },
+    {
+      prompt: "Robert Hooke and Anton van Leeuwenhoek not only helped discover cells but also",
+      options: ["discovered that cells came from existing cells.", "helped develop the microscope.", "concluded that all living things had cells.", "discovered mushrooms and fungi."],
+      answer: 1,
+      explain: {
+        en: "They helped develop the microscope.",
+        ru: "Они помогли разработать микроскоп."
+      },
+      points: 1
+    },
+    {
+      prompt: "Which of the following statements is not part of the cell theory?",
+      options: ["Animals and plants share the same kinds of cells.", "All organisms are made up of one or more cells.", "The cell is the basic unit of all living things.", "All cells come from existing cells."],
+      answer: 0,
+      explain: {
+        en: "The statement that animals and plants share the same kinds of cells is NOT part of the cell theory.",
+        ru: "Утверждение, что животные и растения имеют одинаковые виды клеток, НЕ является частью клеточной теории."
+      },
+      points: 1
+    },
+    {
+      prompt: "Most cells are a very small size because",
+      options: ["they don’t have hard shells like eggs.", "their volume does not increase.", "their volume is limited by how large their surface area is.", "their surface area-to-volume ratio is too small."],
+      answer: 2,
+      explain: {
+        en: "Cell size is limited by the surface area-to-volume ratio.",
+        ru: "Размер клетки ограничен отношением площади поверхности к объему."
+      },
+      points: 1
+    },
+    {
+      prompt: "What part of the cell keeps the cell membrane from collapsing?",
+      options: ["cell wall", "cytoplasm", "cytoskeleton", "nucleus"],
+      answer: 2,
+      explain: {
+        en: "The cytoskeleton helps keep the cell membrane from collapsing.",
+        ru: "Цитоскелет помогает предотвратить коллапс клеточной мембраны."
+      },
+      points: 1
+    },
+    {
+      prompt: "A cell’s nucleus contains DNA, which carries genetic material with",
+      options: ["ribosomes.", "the cytoskeleton.", "the endoplasmic reticulum.", "instructions for how to make protein."],
+      answer: 3,
+      explain: {
+        en: "DNA carries instructions for how to make protein.",
+        ru: "ДНК несет инструкции по созданию белков."
+      },
+      points: 1
+    },
+    {
+      prompt: "What part of the cell acts as the cell’s delivery system?",
+      options: ["nucleus", "nucleolus", "mitochondrion", "endoplasmic reticulum"],
+      answer: 3,
+      explain: {
+        en: "The endoplasmic reticulum acts as the delivery system.",
+        ru: "Эндоплазматический ретикулум действует как транспортная система."
+      },
+      points: 1
+    },
+    {
+      prompt: "Which of the following is true of each of the four levels of organization of living things?",
+      options: ["Each contains larger cells than the level below it.", "Each is more complex than the level below it.", "Each performs the same functions as the level below it.", "Each is more specialized than the level below it."],
+      answer: 1,
+      explain: {
+        en: "Each level is more complex than the level below it.",
+        ru: "Каждый уровень сложнее предыдущего."
+      },
+      points: 1
+    },
+    {
+      prompt: "The function of a part of an organism is related to",
+      options: ["its arrangement of cells.", "the shape of its parts.", "the structure of that part.", "its appearance under a microscope."],
+      answer: 2,
+      explain: {
+        en: "Function is related to structure.",
+        ru: "Функция связана со структурой."
+      },
+      points: 1
+    },
+    {
+      prompt: "Specialization in cells makes tissues, organs, and systems",
+      options: ["grow large in size.", "produce larger cells.", "work more efficiently.", "stay healthy."],
+      answer: 2,
+      explain: {
+        en: "Specialization allows them to work more efficiently.",
+        ru: "Специализация позволяет им работать более эффективно."
+      },
+      points: 1
+    },
+    {
+      prompt: "Which phrase describes a cell?",
+      options: ["is always very small", "does everything needed for life", "always looks like an egg", "is found only in plants"],
+      answer: 1,
+      explain: {
+        en: "A cell does everything needed for life (it is the basic unit of life).",
+        ru: "Клетка выполняет все необходимое для жизни (это базовая единица жизни)."
+      },
+      points: 1
+    },
+    {
+      prompt: "What are all organisms made of?",
+      options: ["plants", "protists", "cells", "eggs"],
+      answer: 2,
+      explain: {
+        en: "All organisms are made of cells.",
+        ru: "Все организмы состоят из клеток."
+      },
+      points: 1
+    },
+    {
+      prompt: "Where do all cells come from?",
+      options: ["animals", "ponds", "cells", "eggs"],
+      answer: 2,
+      explain: {
+        en: "All cells come from existing cells.",
+        ru: "Все клетки происходят от существующих клеток."
+      },
+      points: 1
+    },
+    {
+      prompt: "What keeps the size of most cells very small?",
+      options: ["their hard shells", "the surface area–to-volume ratio", "food and wastes", "their thin surfaces"],
+      answer: 1,
+      explain: {
+        en: "The surface area-to-volume ratio limits cell size.",
+        ru: "Отношение площади поверхности к объему ограничивает размер клетки."
+      },
+      points: 1
+    },
+    {
+      prompt: "What protects the inside of a cell from the outside world?",
+      options: ["cytoplasm", "nucleus", "cell membrane", "DNA"],
+      answer: 2,
+      explain: {
+        en: "The cell membrane protects the inside of the cell.",
+        ru: "Клеточная мембрана защищает внутреннюю часть клетки."
+      },
+      points: 1
+    },
+    {
+      prompt: "How are archaea different from bacteria?",
+      options: ["Archaea have different ribosomes.", "Archaea have only one cell.", "Archaea have cell membranes.", "Archaea have RNA, not DNA."],
+      answer: 0,
+      explain: {
+        en: "Archaea have different ribosomes (chemically different from bacteria).",
+        ru: "У архей другие рибосомы (химически отличные от бактерий)."
+      },
+      points: 1
+    },
+    {
+      prompt: "Robert Hooke thought that animals did not have cells because he",
+      options: ["had not yet invented the microscope.", "could not see animal cells in his microscope.", "had not yet discovered protists.", "was looking at dead cork cells, not live ones."],
+      answer: 1,
+      explain: {
+        en: "Animal cells were harder to see/he couldn't see them clearly initially compared to plant cell walls.",
+        ru: "Он не мог видеть животные клетки в свой микроскоп так же четко, как растительные."
+      },
+      points: 1
+    },
+    {
+      prompt: "Protists are a group of organisms that include",
+      options: ["only prokaryotes.", "only eukaryotes.", "only small organisms found in pond water.", "both prokaryotes and eukaryotes."],
+      answer: 1,
+      explain: {
+        en: "Protists are eukaryotes.",
+        ru: "Протисты являются эукариотами."
+      },
+      points: 1
+    },
+    {
+      prompt: "The complex sugar cellulose is found in the cell walls of",
+      options: ["all prokaryotes.", "plants.", "animals.", "fungi."],
+      answer: 1,
+      explain: {
+        en: "Cellulose is found in the cell walls of plants.",
+        ru: "Целлюлоза содержится в клеточных стенках растений."
+      },
+      points: 1
+    },
+    {
+      prompt: "What is cytoplasm?",
+      options: ["the nucleus of a cell", "the fluid inside a cell", "the genetic material in a cell", "the proteins in a cell"],
+      answer: 1,
+      explain: {
+        en: "Cytoplasm is the fluid inside a cell.",
+        ru: "Цитоплазма — это жидкость внутри клетки."
+      },
+      points: 1
+    },
+    {
+      prompt: "Where does photosynthesis take place in a cell?",
+      options: ["in the nucleus", "in the mitochondria", "in the chloroplasts", "in the ribosomes"],
+      answer: 2,
+      explain: {
+        en: "Photosynthesis takes place in the chloroplasts.",
+        ru: "Фотосинтез происходит в хлоропластах."
+      },
+      points: 1
+    }
+  ],
+
 
 };
 
